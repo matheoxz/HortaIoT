@@ -1,0 +1,5 @@
+{
+    "sketch": "Horta_IoT_Arduino/src/main.cpp",
+    "board": "arduino:avr:uno",
+    "port": "/dev/ttyUSB0"
+}
