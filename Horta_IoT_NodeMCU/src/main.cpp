@@ -89,7 +89,7 @@ void setupWiFi(){
   Serial.println(wifiConfig.ssid);
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin("", "");
+  WiFi.begin("Novaes", "S16BJH57");
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -133,7 +133,7 @@ void reconnect() {
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
     net.setInsecure();
-    if (client.connect(clientId.c_str(), "horta", "")) {
+    if (client.connect(clientId.c_str(), "horta", "Ce90B6d9B2d")) {
       Serial.println("connected");
       // Once connected, publish an announcement...
       client.publish("outTopic", "hello world");
@@ -189,7 +189,7 @@ void setup() {
   setupWiFi();
 
   //connect to MQTT broker
-  client.begin(".s1.eu.hivemq.cloud", 8883, net);
+  client.begin("cf40085204594cefa89a3c99407beae5.s1.eu.hivemq.cloud", 8883, net);
   
   client.onMessage(messageReceived);
 }
