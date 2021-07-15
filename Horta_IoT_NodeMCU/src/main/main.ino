@@ -1,9 +1,12 @@
 /*************************INCLUDES*************************/
+
 #include <FS.h>
-#include <ESP8266WiFi.h>
-#include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <MQTT.h>
+#include <WiFi101.h>
 /*********************************************************/
+
+#define MQTT_VERSION "5.0"
 
 /***********************GLOBAL TYPES**********************/
 struct WiFiConfiguration
@@ -32,8 +35,8 @@ WiFiConfiguration wifiConfig;
 MQTTConfiguration mqttConfig;
 
 //PubSub client
-WiFiClient hortaClient;
-PubSubClient client(hortaClient);
+WiFiSSLClient hortaClient;
+MQTTClient client(hortaClient);
 
 //millis variable
 unsigned long lastMsg = 0;
@@ -84,15 +87,16 @@ bool loadConfig(){
 void setupWiFi(){
   Serial.print("Connecting to ");
   Serial.println(wifiConfig.ssid);
-  Serial.println(wifiConfig.password);
 
-  WiFi.mode(WIFI_STA);
+  //WiFi.mode(WIFI_STA);
   WiFi.begin("Novaes", "S16BJH57");
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
+
+   randomSeed(micros());
 
   Serial.println("");
   Serial.println("WiFi connected");
@@ -135,13 +139,20 @@ void reconnect() {
       // ... and resubscribe
       client.subscribe("led");
     } else {
-      Serial.print("failed, state = ");
-      Serial.print(client.state());
+      Serial.print("failed, rc=");
+      Serial.print(client.lastError());
+      Serial.println(TCP_DEBUG);
+      Serial.println(TCPIP_DEBUG);
+
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
     }
   }
+}
+
+void messageReceived(String &topic, String &payload) {
+  Serial.println("incoming: " + topic + " - " + payload);
 }
 /*********************************************************/
 
@@ -149,12 +160,12 @@ void reconnect() {
 void setup() {
   //start serial monitor
   Serial.begin(115200);
-Serial.println();
+
   //mount the file system to access the configuration file
   Serial.println("Mounting file system...");
   if(!SPIFFS.begin()){
     Serial.println("failed to mount file system");
-   
+    
   }
 
   //load configuration file
@@ -167,20 +178,14 @@ Serial.println();
   //connect to WiFi
   setupWiFi();
 
-  Serial.print("aaaaaaaaA");
   //connect to MQTT broker
-  Serial.println(mqttConfig.username);
-  client.setServer("cf40085204594cefa89a3c99407beae5.s1.eu.hivemq.cloud", 8883);
-  client.setCallback(callback);
+  client.begin("mqtts://cf40085204594cefa89a3c99407beae5.s1.eu.hivemq.cloud", 8883, hortaClient);
+  
+  client.onMessage(messageReceived);
 }
 
 void loop() {
   if (!client.connected()) {
-    if (client.connect("Horta7801", "horta", "Ce90B6d9B2d" )) {
- 
-      Serial.println("connected");  
-    }
-    else
     reconnect();
   }
   client.loop();
