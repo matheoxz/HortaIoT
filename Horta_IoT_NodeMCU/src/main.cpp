@@ -33,8 +33,6 @@ unsigned long lastMsg = 0;
 
 /************************FUNCTIONS************************/
 
-
-
 // load the configuration file data
 bool loadConfig(){
   //saveConfig();
