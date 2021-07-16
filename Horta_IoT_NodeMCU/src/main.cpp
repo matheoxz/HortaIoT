@@ -1,42 +1,29 @@
 /*************************INCLUDES*************************/
 #include <Arduino.h>
-#include <FS.h>
+#include <LittleFS.h>
 #include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
 #include <MQTT.h>
+#include <string.h>
 /*********************************************************/
 
-#define MQTT_VERSION "5.0"
-
-/***********************GLOBAL TYPES**********************/
-struct WiFiConfiguration
-{
-  const char* ssid;
-  const char* password;
-};
-
-struct MQTTConfiguration
-{
-  const char* url;
-  const char* port;
-  const char* username;
-  const char* password;
-
-};
-
-
-/*********************************************************/
 
 /*********************GLOBAL VARIABLES*********************/
+StaticJsonDocument<400> doc;
+JsonObject obj;
 //Wifi configuration
-WiFiConfiguration wifiConfig;
+char wifiSsid[20];
+char wifiPassword[30];
 
 //MQTT broker and credentials configuration
-MQTTConfiguration mqttConfig;
+char brokerUrl[256];
+char *brokerUsername;
+char *brokerPassword;
 
 //PubSub client
 WiFiClientSecure net;
 MQTTClient client;
+
 
 //millis variable
 unsigned long lastMsg = 0;
@@ -46,10 +33,13 @@ unsigned long lastMsg = 0;
 
 /************************FUNCTIONS************************/
 
+
+
 // load the configuration file data
 bool loadConfig(){
+  //saveConfig();
   //opens the configuration file in read mode
-  File configFile = SPIFFS.open("/secrets.json", "r");
+  File configFile = LittleFS.open("/secrets.json", "r");
 
   //check the existence of the configuration file
   if(!configFile){
@@ -63,33 +53,38 @@ bool loadConfig(){
 
   //Read the file in Json format
   configFile.readBytes(buf.get(), size);
-  StaticJsonDocument<400> doc;
+  
   auto error = deserializeJson(doc, buf.get());
   if(error){
     Serial.println("Failed to parse configuration file");
     return false;
   }
 
+  obj = doc.as<JsonObject>();
+
   //assign the results to the global variables
-  wifiConfig.ssid = doc["wifi_settings"]["ssid"];
-  wifiConfig.password = doc["wifi_settings"]["password"];
+  brokerUsername = (char*)malloc(sizeof(obj["broker_username"]));
+  strcpy(brokerUsername,obj["broker_username"]);
 
-  mqttConfig.url = doc["mqtt_settings"]["broker"]["server_url"];
-  mqttConfig.port = doc["mqtt_settings"]["broker"]["server_port"];
+  brokerPassword = (char*)malloc(sizeof(obj["broker_password"]));
+  strcpy(brokerPassword,obj["broker_password"]);
 
-  mqttConfig.username = doc["mqtt_settings"]["credentials"]["username"];
-  mqttConfig.password = doc["mqtt_settings"]["credentials"]["password"];
+  
+  strcpy(wifiSsid,obj["wifi_ssid"]);
+  strcpy(wifiPassword,obj["wifi_password"]);
+
+  strcpy(brokerUrl,obj["broker_url"]);
+
   return true;
-
 }
 
 // setup the WiFi and connect to it
 void setupWiFi(){
   Serial.print("Connecting to ");
-  Serial.println(wifiConfig.ssid);
+  Serial.println(wifiSsid);
 
   WiFi.mode(WIFI_STA);
-  WiFi.begin("Novaes", "S16BJH57");
+  WiFi.begin(wifiSsid, wifiPassword);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -104,25 +99,6 @@ void setupWiFi(){
   Serial.println(WiFi.localIP());
 }
 
-//PubSub callback
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-
-  // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1') {
-    digitalWrite(BUILTIN_LED, LOW);   
-  } else {
-    digitalWrite(BUILTIN_LED, HIGH);  
-  }
-
-}
-
 //Reconnect to broker 
 void reconnect() {
   // Loop until we're reconnected
@@ -133,13 +109,15 @@ void reconnect() {
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
     net.setInsecure();
-    if (client.connect(clientId.c_str(), "horta", "Ce90B6d9B2d")) {
+   
+    if (client.connect(clientId.c_str(), brokerUsername, brokerPassword)) {
       Serial.println("connected");
       // Once connected, publish an announcement...
       client.publish("outTopic", "hello world");
       // ... and resubscribe
       client.subscribe("led");
     } else {
+      
       Serial.print("failed, rc=");
       Serial.print(client.lastError());
      
@@ -173,7 +151,7 @@ void setup() {
 
   //mount the file system to access the configuration file
   Serial.println("Mounting file system...");
-  if(!SPIFFS.begin()){
+  if(!LittleFS.begin()){
     Serial.println("failed to mount file system");
     
   }
@@ -189,7 +167,7 @@ void setup() {
   setupWiFi();
 
   //connect to MQTT broker
-  client.begin("cf40085204594cefa89a3c99407beae5.s1.eu.hivemq.cloud", 8883, net);
+  client.begin(brokerUrl, 8883, net);
   
   client.onMessage(messageReceived);
 }
@@ -199,6 +177,7 @@ void loop() {
     reconnect();
   }
   client.loop();
+
 
   unsigned long now = millis();
   if (now - lastMsg > 10000) {

@@ -1,9 +1,9 @@
 /*************************INCLUDES*************************/
 
-#include <FS.h>
+#include <LittleFS.h>
+#include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
 #include <MQTT.h>
-#include <WiFi101.h>
 /*********************************************************/
 
 #define MQTT_VERSION "5.0"
@@ -35,8 +35,8 @@ WiFiConfiguration wifiConfig;
 MQTTConfiguration mqttConfig;
 
 //PubSub client
-WiFiSSLClient hortaClient;
-MQTTClient client(hortaClient);
+WiFiClientSecure net;
+MQTTClient client;
 
 //millis variable
 unsigned long lastMsg = 0;
@@ -49,7 +49,7 @@ unsigned long lastMsg = 0;
 // load the configuration file data
 bool loadConfig(){
   //opens the configuration file in read mode
-  File configFile = SPIFFS.open("/secrets.json", "r");
+  File configFile = LittleFS.open("/secrets.json", "r");
 
   //check the existence of the configuration file
   if(!configFile){
@@ -74,13 +74,17 @@ bool loadConfig(){
   wifiConfig.ssid = doc["wifi_settings"]["ssid"];
   wifiConfig.password = doc["wifi_settings"]["password"];
 
-  mqttConfig.url = doc["mqtt_settings"]["broker"]["server_url"];
-  mqttConfig.port = doc["mqtt_settings"]["broker"]["server_port"];
+  mqttConfig.url = doc["broker_settings"]["server_url"];
+  mqttConfig.port = doc["broker_settings"]["server_port"];
 
-  mqttConfig.username = doc["mqtt_settings"]["credentials"]["username"];
-  mqttConfig.password = doc["mqtt_settings"]["credentials"]["password"];
+  mqttConfig.username = doc["broker_credentials"]["username"];
+  mqttConfig.password = doc["broker_credentials"]["password"];
+
+  Serial.println(wifiConfig.ssid);
+  Serial.println(mqttConfig.url);
+  Serial.println(mqttConfig.username);
+
   return true;
-
 }
 
 // setup the WiFi and connect to it
@@ -88,7 +92,7 @@ void setupWiFi(){
   Serial.print("Connecting to ");
   Serial.println(wifiConfig.ssid);
 
-  //WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_STA);
   WiFi.begin("Novaes", "S16BJH57");
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -116,9 +120,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
   // Switch on the LED if an 1 was received as first character
   if ((char)payload[0] == '1') {
-    digitalWrite(BUILTIN_LED, LOW);   
+    digitalWrite(LED_BUILTIN, HIGH);   
   } else {
-    digitalWrite(BUILTIN_LED, HIGH);  
+    digitalWrite(LED_BUILTIN, LOW);  
   }
 
 }
@@ -132,6 +136,7 @@ void reconnect() {
     String clientId = "Horta-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
+    net.setInsecure();
     if (client.connect(clientId.c_str(), "horta", "Ce90B6d9B2d")) {
       Serial.println("connected");
       // Once connected, publish an announcement...
@@ -141,8 +146,7 @@ void reconnect() {
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.lastError());
-      Serial.println(TCP_DEBUG);
-      Serial.println(TCPIP_DEBUG);
+     
 
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
@@ -152,7 +156,17 @@ void reconnect() {
 }
 
 void messageReceived(String &topic, String &payload) {
-  Serial.println("incoming: " + topic + " - " + payload);
+   Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("]: ");
+  Serial.print(payload);
+
+  // Switch on the LED if an 1 was received as first character
+  if ((char)payload[0] == '1') {
+    digitalWrite(LED_BUILTIN, LOW);   
+  } else {
+    digitalWrite(LED_BUILTIN, HIGH);  
+  }
 }
 /*********************************************************/
 
@@ -163,7 +177,7 @@ void setup() {
 
   //mount the file system to access the configuration file
   Serial.println("Mounting file system...");
-  if(!SPIFFS.begin()){
+  if(!LittleFS.begin()){
     Serial.println("failed to mount file system");
     
   }
@@ -179,7 +193,7 @@ void setup() {
   setupWiFi();
 
   //connect to MQTT broker
-  client.begin("mqtts://cf40085204594cefa89a3c99407beae5.s1.eu.hivemq.cloud", 8883, hortaClient);
+  client.begin("cf40085204594cefa89a3c99407beae5.s1.eu.hivemq.cloud", 8883, net);
   
   client.onMessage(messageReceived);
 }
@@ -191,7 +205,7 @@ void loop() {
   client.loop();
 
   unsigned long now = millis();
-  if (now - lastMsg > 2000) {
+  if (now - lastMsg > 10000) {
     lastMsg = now;
    
     Serial.print("Publish message: ");
