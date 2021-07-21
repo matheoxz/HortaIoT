@@ -8,7 +8,7 @@
 #include <SoftwareSerial.h>
 /*********************************************************/
 
-/*********************GLOBAL VARIABLES*********************/
+/*********************GLOBAL VARIABLES********************/
 //config files
 StaticJsonDocument<400> doc;
 JsonObject obj;
@@ -139,18 +139,70 @@ void messageReceived(String &topic, String &payload)
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("]: ");
-  Serial.print(payload);
+  Serial.println(payload);
 
-  // Switch on the LED if an 1 was received as first character
-  if ((char)payload[0] == '1')
-  {
-    digitalWrite(LED_BUILTIN, LOW);
+  //control illumination
+  if(topic.compareTo("led") == 0){
+    Serial.println("led: ");
+    //First floor control
+    if((char)payload[0]=='0'){
+      digitalWrite(D4, LOW);
+      Serial.print("off ");
+    }
+    if((char)payload[0]=='1'){
+      digitalWrite(D4, HIGH);
+      Serial.print("on ");
+    }
+
+    //second floor control
+    if((char)payload[0]=='2'){
+      digitalWrite(D5, LOW);
+    }
+    if((char)payload[0]=='3'){
+      digitalWrite(D5, HIGH);
+    }
   }
-  else
+  
+}
+
+void deserializeData(){
+  if (s.available() > 0)
   {
-    digitalWrite(LED_BUILTIN, HIGH);
+    StaticJsonDocument<1000> msg;
+
+    DeserializationError err = deserializeJson(msg, s);
+
+    if (err == DeserializationError::Ok)
+    {
+      //JsonObject msgObj = msg.as<JsonObject>();
+      client.publish("success", "deserialization ok");
+      const char *aa = msg["aa"];
+      //Serial.println(aa);
+      client.publish("outTopic", aa);
+      int teste = msg["teste"];
+      char buffer[33];
+      //Serial.println(teste);
+      itoa(teste, buffer, 10);
+      client.publish("outTopic", buffer);
+      long timestamp = msg["timestamp"];
+      //Serial.println(timestamp);
+      itoa(timestamp, buffer, 10);
+      client.publish("outTopic", buffer);
+      
+      
+    }
+    else
+    {
+      client.publish("error", "deserialization error");
+      client.publish("error", err.c_str());
+
+      // Flush all bytes in the "link" serial port buffer
+      while (s.available() > 0)
+        s.read();
+    }
   }
 }
+
 /*********************************************************/
 
 /***************************MAIN**************************/
@@ -182,9 +234,14 @@ void setup()
   //connect to WiFi
   setupWiFi();
 
+  //set the pinouts
+  pinMode(D4, OUTPUT); //first floor illumination
+  pinMode(D3, OUTPUT); //second floor illumination
+  pinMode(D2, OUTPUT); //third floor illumination
+
   //connect to MQTT broker
   client.begin(brokerUrl, 8883, net);
-
+  //set callback funtion to when it receives a message
   client.onMessage(messageReceived);
 
   delay(500);
@@ -199,48 +256,20 @@ void loop()
   }
   client.loop();
 
-  if (s.available() > 0)
+  unsigned long now = millis();
+
+  if (now - lastMsg > 5000)
   {
-    StaticJsonDocument<1000> msg;
-
-    DeserializationError err = deserializeJson(msg, s);
-
-    if (err == DeserializationError::Ok)
-    {
-      //JsonObject msgObj = msg.as<JsonObject>();
-      client.publish("success", "deserialization ok");
-      const char *aa = msg["aa"];
-      Serial.println(aa);
-      client.publish("outTopic", aa);
-      int teste = msg["teste"];
-      char buffer[33];
-      Serial.println(teste);
-      itoa(teste, buffer, 10);
-      client.publish("outTopic", buffer);
-      long timestamp = msg["timestamp"];
-      Serial.println(timestamp);
-      itoa(timestamp, buffer, 10);
-      client.publish("outTopic", buffer);
-      delay(5000);
-      
-    }
-    else
-    {
-      client.publish("error", "deserialization error");
-      client.publish("error", err.c_str());
-
-      // Flush all bytes in the "link" serial port buffer
-      while (s.available() > 0)
-        s.read();
-    }
+    lastMsg = now;
+    deserializeData();
   }
 
-  unsigned long now = millis();
+  
   if (now - lastMsg > 10000)
   {
     lastMsg = now;
 
-    Serial.println("Publish message: debug");
+    //Serial.println("Publish message: debug");
 
     client.publish("debug", "debug");
   }
