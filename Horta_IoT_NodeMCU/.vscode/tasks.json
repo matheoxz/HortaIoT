@@ -1,0 +1,41 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "PlatformIO",
+			"task": "Build (nodemcuv2)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"group": "build",
+			"label": "PlatformIO: Build (nodemcuv2)"
+		},
+		{
+			"type": "cppbuild",
+			"label": "C/C++: cpp build active file",
+			"command": "/usr/bin/cpp",
+			"args": [
+				"-g",
+				"${file}",
+				"-o",
+				"${fileDirname}/${fileBasenameNoExtension}"
+			],
+			"options": {
+				"cwd": "${fileDirname}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": "build",
+			"detail": "compiler: /usr/bin/cpp"
+		},
+		{
+			"type": "PlatformIO",
+			"task": "Pre-Debug",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Build in debug mode"
+		}
+	]
+}
