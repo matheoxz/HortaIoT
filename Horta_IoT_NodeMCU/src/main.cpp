@@ -37,7 +37,7 @@ unsigned long lastMsg = 0;
 // load the configuration file data
 bool loadConfig()
 {
-  //saveConfig();
+  saveConfig();
   //opens the configuration file in read mode
   File configFile = LittleFS.open("/secrets.json", "r");
 
@@ -120,6 +120,7 @@ void reconnect()
       client.publish("outTopic", "hello world");
       // ... and resubscribe
       client.subscribe("led");
+      client.subscribe("motor");
     }
     else
     {
@@ -143,24 +144,40 @@ void messageReceived(String &topic, String &payload)
 
   //control illumination
   if(topic.compareTo("led") == 0){
-    Serial.println("led: ");
+    Serial.print("led: ");
     //First floor control
     if((char)payload[0]=='0'){
       digitalWrite(D4, LOW);
-      Serial.print("off ");
+      Serial.println("1, off ");
     }
     if((char)payload[0]=='1'){
       digitalWrite(D4, HIGH);
-      Serial.print("on ");
+      Serial.println("1, on ");
     }
 
     //second floor control
     if((char)payload[0]=='2'){
-      digitalWrite(D5, LOW);
+      digitalWrite(D3, LOW);
+      Serial.println("2, off ");
     }
     if((char)payload[0]=='3'){
-      digitalWrite(D5, HIGH);
+      digitalWrite(D3, HIGH);
+      Serial.println("2, on ");
     }
+  }
+
+  //control motor
+  if(topic.compareTo("motor")==0){
+    Serial.print("motor: ");
+    if((char)payload[0]=='0'){
+      digitalWrite(D2, LOW);
+      Serial.println("off ");
+    }
+    if((char)payload[0]=='1'){
+      digitalWrite(D2, HIGH);
+      Serial.println("on ");
+    }
+
   }
   
 }
@@ -237,7 +254,7 @@ void setup()
   //set the pinouts
   pinMode(D4, OUTPUT); //first floor illumination
   pinMode(D3, OUTPUT); //second floor illumination
-  pinMode(D2, OUTPUT); //third floor illumination
+  pinMode(D2, OUTPUT); //motor 
 
   //connect to MQTT broker
   client.begin(brokerUrl, 8883, net);
