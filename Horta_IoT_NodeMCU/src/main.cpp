@@ -120,6 +120,7 @@ void reconnect()
       client.publish("outTopic", "hello world");
       // ... and resubscribe
       client.subscribe("led");
+      client.subscribe("motor");
     }
     else
     {
@@ -162,7 +163,7 @@ void messageReceived(String &topic, String &payload)
       digitalWrite(D5, HIGH);
     }
   }
-  
+
 }
 
 void deserializeData(){
@@ -188,8 +189,8 @@ void deserializeData(){
       //Serial.println(timestamp);
       itoa(timestamp, buffer, 10);
       client.publish("outTopic", buffer);
-      
-      
+
+
     }
     else
     {
@@ -264,7 +265,7 @@ void loop()
     deserializeData();
   }
 
-  
+
   if (now - lastMsg > 10000)
   {
     lastMsg = now;

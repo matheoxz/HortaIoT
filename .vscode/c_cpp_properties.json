@@ -3,7 +3,7 @@
     "configurations": [
         {
             "name": "Arduino",
-            "compilerPath": "/snap/arduino/61/hardware/tools/avr/bin/avr-g++",
+            "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/BuildTools/VC/Tools/Llvm/x64/bin/clang-cl.exe",
             "compilerArgs": [
                 "-std=gnu++11",
                 "-fpermissive",
@@ -14,18 +14,8 @@
                 "-Wno-error=narrowing"
             ],
             "intelliSenseMode": "gcc-x64",
-            "includePath": [
-                "/snap/arduino/61/hardware/arduino/avr/cores/arduino",
-                "/snap/arduino/61/hardware/arduino/avr/variants/standard",
-                "/snap/arduino/61/hardware/arduino/avr/libraries/SoftwareSerial/src",
-                "/home/matheoxz/Arduino/libraries/ArduinoJson/src",
-                "/snap/arduino/61/hardware/tools/avr/lib/gcc/avr/7.3.0/include",
-                "/snap/arduino/61/hardware/tools/avr/lib/gcc/avr/7.3.0/include-fixed",
-                "/snap/arduino/61/hardware/tools/avr/avr/include"
-            ],
-            "forcedInclude": [
-                "/snap/arduino/61/hardware/arduino/avr/cores/arduino/Arduino.h"
-            ],
+            "includePath": [],
+            
             "cStandard": "c11",
             "cppStandard": "c++11",
             "defines": [
