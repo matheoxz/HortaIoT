@@ -30,7 +30,3 @@
 *.exe
 *.out
 *.app
-
-.vscode
-
-Horta_IoT_NodeMCU/src/main
