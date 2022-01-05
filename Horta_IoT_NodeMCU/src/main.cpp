@@ -157,10 +157,10 @@ void messageReceived(String &topic, String &payload)
 
     //second floor control
     if((char)payload[0]=='2'){
-      digitalWrite(D5, LOW);
+      digitalWrite(D3, LOW);
     }
     if((char)payload[0]=='3'){
-      digitalWrite(D5, HIGH);
+      digitalWrite(D3, HIGH);
     }
   }
 
@@ -175,20 +175,12 @@ void deserializeData(){
 
     if (err == DeserializationError::Ok)
     {
-      //JsonObject msgObj = msg.as<JsonObject>();
       client.publish("success", "deserialization ok");
-      const char *aa = msg["aa"];
-      //Serial.println(aa);
-      client.publish("outTopic", aa);
-      int teste = msg["teste"];
+
       char buffer[33];
-      //Serial.println(teste);
-      itoa(teste, buffer, 10);
-      client.publish("outTopic", buffer);
       long timestamp = msg["timestamp"];
-      //Serial.println(timestamp);
       itoa(timestamp, buffer, 10);
-      client.publish("outTopic", buffer);
+      client.publish("timestamp", buffer);
 
 
     }

@@ -93,7 +93,7 @@ float getTemperature(){
 float getIlluminance(){
   float mean = 0;
   for(int i = 0; i < 20; i++){
-  mean += analogRead(ILLUMINANCE_PORT);
+    mean += analogRead(ILLUMINANCE_PORT);
   }
   return map(mean/20, 0, 1024, 1, 100);
 }

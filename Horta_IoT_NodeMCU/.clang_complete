@@ -48,7 +48,7 @@
 -IC:/Users/mathe/.platformio/packages/toolchain-xtensa/lib/gcc/xtensa-lx106-elf/10.3.0/include
 -IC:/Users/mathe/.platformio/packages/toolchain-xtensa/lib/gcc/xtensa-lx106-elf/10.3.0/include-fixed
 -IC:/Users/mathe/.platformio/packages/toolchain-xtensa/xtensa-lx106-elf/include
--DPLATFORMIO=50203
+-DPLATFORMIO=50204
 -DESP8266
 -DARDUINO_ARCH_ESP8266
 -DARDUINO_ESP8266_NODEMCU_ESP12E
