@@ -28,7 +28,9 @@ MQTTClient client;
 
 //Serial communication, (Rx,Tx)
 SoftwareSerial s(D6, D5);
-unsigned long lastMsg = 0;
+unsigned long lastMsg = 0, lastMsg10 = 0;
+StaticJsonDocument<500> msg;
+char data[500];
 
 /*********************************************************/
 
@@ -144,49 +146,56 @@ void messageReceived(String &topic, String &payload)
 
   //control illumination
   if(topic.compareTo("led") == 0){
-    Serial.println("led: ");
+    Serial.print("led: ");
     //First floor control
     if((char)payload[0]=='0'){
       digitalWrite(D4, LOW);
-      Serial.print("off ");
+      Serial.println("1, off ");
     }
     if((char)payload[0]=='1'){
       digitalWrite(D4, HIGH);
-      Serial.print("on ");
+      Serial.println("1, on ");
     }
 
     //second floor control
     if((char)payload[0]=='2'){
       digitalWrite(D3, LOW);
+      Serial.println("2, off ");
     }
     if((char)payload[0]=='3'){
       digitalWrite(D3, HIGH);
+      Serial.println("2, on ");
     }
+  }
+
+  //control motor
+  if(topic.compareTo("motor")==0){
+    Serial.print("motor: ");
+    if((char)payload[0]=='0'){
+      digitalWrite(D2, LOW);
+      Serial.println("off ");
+    }
+    if((char)payload[0]=='1'){
+      digitalWrite(D2, HIGH);
+      Serial.println("on ");
+    }
+
   }
 
 }
 
 void deserializeData(){
-  if (s.available() > 0)
+  if (s.available())
   {
-    StaticJsonDocument<1000> msg;
-
     DeserializationError err = deserializeJson(msg, s);
-
+    serializeJson(msg, data);
+    client.publish("data", data);
     if (err == DeserializationError::Ok)
     {
       client.publish("success", "deserialization ok");
-
-      char buffer[33];
-      long timestamp = msg["timestamp"];
-      itoa(timestamp, buffer, 10);
-      client.publish("timestamp", buffer);
-
-
     }
     else
     {
-      client.publish("error", "deserialization error");
       client.publish("error", err.c_str());
 
       // Flush all bytes in the "link" serial port buffer
@@ -230,7 +239,7 @@ void setup()
   //set the pinouts
   pinMode(D4, OUTPUT); //first floor illumination
   pinMode(D3, OUTPUT); //second floor illumination
-  pinMode(D2, OUTPUT); //third floor illumination
+  pinMode(D2, OUTPUT); //motor
 
   //connect to MQTT broker
   client.begin(brokerUrl, 8883, net);
@@ -258,9 +267,9 @@ void loop()
   }
 
 
-  if (now - lastMsg > 10000)
+  if (now - lastMsg10 > 10000)
   {
-    lastMsg = now;
+    lastMsg10 = now;
 
     //Serial.println("Publish message: debug");
 
