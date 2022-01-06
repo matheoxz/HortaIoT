@@ -31,6 +31,9 @@ DallasTemperature sensors(&oneWire);
 //GravityTDS
 GravityTDS gravityTDS;
 
+//serialized data
+char serializedData[500];
+
 /**********************************Setup***************************************/
 void setup() {
   Serial.begin(9600);
@@ -115,16 +118,17 @@ void loop() {
   //creating the JSON document
   StaticJsonDocument<500> doc;
   // reading each sensor and storing the values into the JSON document
-  doc["temperature"] = getTemperature();
+  doc["t"] = getTemperature();
   doc["pH"] = getPh();
-  doc["ec"] = getEc(doc["temperature"]);
-  doc["illuminance"] = getIlluminance();
-  doc["level"] = getLevel();
+  doc["ec"] = getEc(doc["t"]);
+  doc["l"] = getLevel();
+  doc["i"] = getIlluminance();
+
   //serialize JSON with read data
-  serializeJsonPretty(doc, Serial);
+  //serializeJsonPretty(doc, Serial);
 
   //send the JSON document to the NodeMCU
-  if(nodemcu.available()>0) serializeJson(doc, nodemcu);
+  serializeJson(doc, nodemcu);
 
   delay(500);
 }
